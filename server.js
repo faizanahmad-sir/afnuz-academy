@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-// ✅ Start Server (Production Safe)
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on port ${PORT}`);
-  console.log(`🔗 Test Email: /test-email`);
-  console.log(`💚 Health: /health`);
-});
-=======
 // server.js
 import express from "express";
 import cors from "cors";
@@ -19,15 +9,25 @@ dotenv.config();
 const app = express();
 
 // ✅ Middleware setup
-app.use(cors({ origin: "*" })); // Allow all origins (for now)
-app.use(express.json()); // Parse incoming JSON
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5500", // local testing
+      "https://afnuzacademy.vercel.app", // frontend deployed URL
+      "https://afnuz-academy-production.up.railway.app", // backend itself
+    ],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+app.use(express.json());
 
 // ✅ Gmail Transporter Setup
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER, // your gmail
-    pass: process.env.EMAIL_PASS, // your app password
+    user: process.env.EMAIL_USER, // Gmail ID
+    pass: process.env.EMAIL_PASS, // App password (not normal password)
   },
   tls: {
     rejectUnauthorized: false,
@@ -43,9 +43,30 @@ transporter.verify((error, success) => {
   }
 });
 
-// ✅ Root route
+// ✅ Default Root route (for Railway test)
 app.get("/", (req, res) => {
-  res.send("🚀 Afnuz Academy backend is running successfully!");
+  res.send("🚀 Afnuz Academy backend is running successfully on Railway!");
+});
+
+// ✅ Health check (useful for Railway auto-check)
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", message: "Server is healthy!" });
+});
+
+// ✅ Test email endpoint
+app.get("/test-email", async (req, res) => {
+  try {
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: process.env.EMAIL_USER,
+      subject: "✅ Test Email from Afnuz Backend",
+      text: "This is a test email to verify deployment and transporter.",
+    });
+    res.status(200).json({ msg: "✅ Test email sent successfully!" });
+  } catch (error) {
+    console.error("❌ Test email failed:", error);
+    res.status(500).json({ msg: "Failed to send test email." });
+  }
 });
 
 // ✅ Send Email Route
@@ -101,7 +122,10 @@ Afnuz Academy`,
   }
 });
 
-// ✅ Start server
+// ✅ Start Server (for Railway)
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
->>>>>>> bde39e5fd07fc7b6b15e3b10e55622e25dc7d3b3
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`\n🚀 Server running on port ${PORT}`);
+  console.log(`🔗 Health check: /health`);
+  console.log(`📬 Test Email: /test-email`);
+});
